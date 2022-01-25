@@ -1,0 +1,107 @@
+let personplace = (
+    for e in entities
+    
+    let addr = (
+        for pl in e.`ca_entities.entity_iti_events`[*]
+        filter pl.`none`.entity_iti_events_type == "Bydliště podle registrace Židů v \"Protektorátu\""
+        filter pl.`none`.entity_iti_events_credibility == "Ověřeno/preferováno"
+        filter pl.`none`.entity_iti_events_place like "Praha %"
+        return pl.`none`.entity_iti_events_place
+    )
+    
+    filter length(addr) > 0
+    
+    let fate = (
+        for pl in e.`ca_entities.entity_iti_fates`[*]
+        filter pl.`none`.entity_iti_fates_credibility == "Ověřeno/preferováno"
+        return pl.`none`.entity_iti_fates_fate
+    )
+    
+    let months = {"January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06", "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"}
+    
+    let trdate = (
+        for pl in e.`ca_entities.entity_simple_trans_to`[*]
+        let d = pl.`none`.entity_simple_trans_date_to
+        let d2 = split(d, " ")
+        return concat(d2[2], "-", months[d2[0]], "-", d2[1])
+    )
+    
+    for a in addr
+        return {"place_idno": rtrim(split(a, "[")[1], "]"), "address": trim(split(a, "[")[0]), "person_idno": e.idno.value, "person": e.preferred_labels.cs_CZ[0], "fate": fate[0], "trdate": trdate[0]}
+)
+
+let addstat = (
+    for p in personplace
+    collect pi = p.place_idno into pl //with count into c 
+    return {"place_idno": pi, 
+        "address_cs": (
+            for a in x_addresses_prague
+            filter a.idno == pi
+            return a.label_cs
+        )[0], 
+        "address_de": (
+            for a in x_addresses_prague
+            filter a.idno == pi
+            return a.label_de
+        )[0], 
+        "count_all": length(
+            for plg in pl
+            return distinct plg.p.person_idno
+            ),
+        "murdered": length(
+            for plg in pl
+            filter plg.p.fate == "Murdered"
+            return distinct plg.p.person_idno
+        ),
+        "survived": length(
+            for plg in pl
+            filter plg.p.fate == "Přežil(a)"
+            return distinct plg.p.person_idno
+        ),
+        "fate_unknown": length(
+            for plg in pl
+            filter plg.p.fate == null
+            return distinct plg.p.person_idno
+        ),
+        "present_1942-01-01": length(
+            for plg in pl
+            filter plg.p.trdate >= "1942-01-01"
+            return distinct plg.p.person_idno
+        ),
+        "present_1943-01-01": length(
+            for plg in pl
+            filter plg.p.trdate >= "1943-01-01"
+            return distinct plg.p.person_idno
+        ),
+        "present_1944-01-01": length(
+            for plg in pl
+            filter plg.p.trdate >= "1944-01-01"
+            return distinct plg.p.person_idno
+        ),
+        "present_1945-01-01": length(
+            for plg in pl
+            filter plg.p.trdate >= "1945-01-01"
+            return distinct plg.p.person_idno
+        ),
+        "present_1945-05-09": length(
+            for plg in pl
+            filter plg.p.trdate >= "1945-05-09"
+            return distinct plg.p.person_idno
+        ), 
+        "lat": (
+            for a in x_addresses_prague
+            filter a.idno == pi
+            return split(a.coordinates, ",")[0]
+        )[0], 
+        "lon": (
+            for a in x_addresses_prague
+            filter a.idno == pi
+            return split(a.coordinates, ",")[1]
+        )[0]
+        }
+)
+for as in addstat
+filter as.lat != null
+filter as.lon != null
+collect lat = as.lat, lon = as.lon into adds
+return {"address_cs": concat_separator("; ", adds[*].as.address_cs), "address_de": concat_separator("; ", adds[*].as.address_de), "count": sum(adds[*].as.count_all), "murdered": sum(adds[*].as.murdered), "survived": sum(adds[*].as.survived), "fate unknown": sum(adds[*].as.fate_unknown), "present_1942-01-01": sum(adds[*].as.`present_1942-01-01`), "present_1943-01-01": sum(adds[*].as.`present_1943-01-01`), "present_1944-01-01": sum(adds[*].as.`present_1944-01-01`), "present_1945-01-01": sum(adds[*].as.`present_1945-01-01`), "present_1945-05-09": sum(adds[*].as.`present_1945-05-09`), "lat": lat, "lon": lon}

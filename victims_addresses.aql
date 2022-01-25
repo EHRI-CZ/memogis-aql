@@ -1,0 +1,40 @@
+    for e in entities
+    
+    let addr = (
+        for pl in e.`ca_entities.entity_iti_events`[*]
+        filter pl.`none`.entity_iti_events_type == "Bydliště podle registrace Židů v \"Protektorátu\""
+        filter pl.`none`.entity_iti_events_credibility == "Ověřeno/preferováno"
+        filter pl.`none`.entity_iti_events_place like "Praha %"
+        return pl.`none`.entity_iti_events_place
+    )
+    
+    filter length(addr) > 0
+    
+    let fate = (
+        for pl in e.`ca_entities.entity_iti_fates`[*]
+        filter pl.`none`.entity_iti_fates_credibility == "Ověřeno/preferováno"
+        return pl.`none`.entity_iti_fates_fate
+    )
+    
+    filter fate[0] == "Murdered"
+    
+    for a in addr
+        let pi = rtrim(split(a, "[")[1], "]")
+        let lat = (
+            for ad in x_addresses_prague
+            filter ad.idno == pi
+            return split(ad.coordinates, ",")[0]
+        )
+        let lon = (
+                for ad in x_addresses_prague
+                filter ad.idno == pi
+                return split(ad.coordinates, ",")[1]
+            )
+        filter lat[0] != null
+        filter lon[0] != null
+        sort e.preferred_labels.cs_CZ[0]
+        return {
+        "jméno (datum narození)": e.preferred_labels.cs_CZ[0],
+        "adresa": trim(split(a, "[")[0]),
+        "lat": lat[0], 
+        "lon": lon[0]}

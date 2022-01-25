@@ -1,0 +1,10 @@
+let incidents = (
+for i in x_incidents
+// filter i.LABEL like '%Mautnerová%'
+return {"name": split(i.LABEL, ': ')[0], "label": split(i.LABEL, ': ')[1], "description": i.DESCRIPTION}
+)
+
+for inc in incidents
+collect l = trim(inc.label) with count into c
+sort c desc
+return {"label - grouped": l, "count": c}

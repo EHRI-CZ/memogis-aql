@@ -1,0 +1,5 @@
+for a in x_addresses_prague
+filter a.coordinates != null
+collect co = a.coordinates into addr
+filter length(addr) >= 2
+return {"coordinates": co, "address_cs": addr[*].a.label_cs, "address_de": addr[*].a.label_de, "idnos": addr[*].a.idno}

@@ -1,0 +1,17 @@
+let i1 = (
+for i in x_incidents
+return {"type": i.TYPE_1, "specification": i.SPEC_1}
+)
+
+let i2 = (
+for i in x_incidents
+filter i.TYPE_2 != null
+return {"type": i.TYPE_2, "specification": i.SPEC_2}
+)
+
+let inctypes_combined = union(i1, i2)
+
+for inctype in inctypes_combined
+collect t = inctype.type, s = inctype.specification with count into c
+sort c desc
+return {"type": t, "specification": s, "count": c}

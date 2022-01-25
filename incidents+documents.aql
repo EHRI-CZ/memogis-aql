@@ -1,0 +1,21 @@
+for i in x_incidents
+let docs = (
+    for d in x_incidents_documents 
+    filter d.id_incident == to_string(i.ID)
+    
+    let object_id = (
+    for doc in documents
+        filter doc.idno.value == d.idno_document
+        limit 10
+        return doc.object_id.value
+    )[0]
+    // https://www.holocaust.cz/databaze-dokumentu/dokument/148693/
+    let url = concat("https://www.holocaust.cz/databaze-dokumentu/dokument/", object_id, "/")
+    return url
+    )
+return {"label": rtrim(i.LABEL, "."), "description": i.DESCRIPTION, 
+"incident type": i.TYPE_1, "incident specification": i.SPEC_1, 
+"incident type (alternative)": i.TYPE_2, "incident specification (alternative": i.SPEC_2, 
+"date": i.DATE, "place": i.PLACE, 
+"documents": concat_separator("; ", docs),
+"lat": split(i.GEO, ",")[0], "lon": split(i.GEO, ",")[1]}
